@@ -19,6 +19,8 @@ const (
     FROM = "from"
     NETWORK = "network"
     TIMEOUT = "timeout"
+    EVENT = "event"
+    NEXT = "next"
 )
 
 
@@ -38,13 +40,14 @@ var MESSAGE_FIELDS Constrained = Constrain(
     SAY, TO, ANSWERONMEDIA, CHANNEL, FROM, NAME, NETWORK,
     REQUIRED, TIMEOUT, VOICE)
 
+var ON_FIELDS Constrained = Constrain(
+    EVENT, NEXT, SAY)
+
 type JSFields map[string]interface{ }
+
+// Say command
 type _Say struct {
     Fields JSFields `json:"say"`
-}
-
-type _Message struct {
-    Fields JSFields `json:"message"`
 }
 
 func (say _Say) Set(field string, value interface{ }) Setter {
@@ -59,6 +62,11 @@ func (say _Say) AddArg(setter Setter) Setter {
     return setter.Set(SAY, say)
 }
 
+// Message command
+type _Message struct {
+    Fields JSFields `json:"message"`
+}
+
 func (message _Message) Set(field string, value interface{ }) Setter {
     _, valid := MESSAGE_FIELDS[field]
     if valid {
@@ -66,6 +74,22 @@ func (message _Message) Set(field string, value interface{ }) Setter {
     }
     return Setter(message)
 }
+
+// On object
+type _On struct {
+    Fields JSFields `json:"on"`
+}
+
+func (on _On) Set(field string, value interface{ }) Setter {
+    _, valid := ON_FIELDS[field]
+    if valid {
+        on.Fields[field] = value
+    }
+    return Setter(on)
+}
+
+
+// Arguments
 
 type Setter interface {
     Set(string, interface{ }) Setter
@@ -95,19 +119,54 @@ func (s Name) AddArg(setter Setter) Setter {
     return setter.Set(NAME, string(s))
 }
 
-type Voice string
-func (s Voice) AddArg(setter Setter) Setter {
-    return setter.Set(VOICE, string(s))
-}
-
 type Required bool
 func (b Required) AddArg(setter Setter) Setter {
     return setter.Set(REQUIRED, bool(b))
 }
 
+type Voice string
+func (s Voice) AddArg(setter Setter) Setter {
+    return setter.Set(VOICE, string(s))
+}
+
 type To string
 func (s To) AddArg(setter Setter) Setter {
     return setter.Set(TO, string(s))
+}
+
+type AnswerOnMedia bool
+func (b AnswerOnMedia) AddArg(setter Setter) Setter {
+    return setter.Set(ANSWERONMEDIA, bool(b))
+}
+
+type Channel string
+func (s Channel) AddArg(setter Setter) Setter {
+    return setter.Set(CHANNEL, string(s))
+}
+
+type From string
+func (s From) AddArg(setter Setter) Setter {
+    return setter.Set(FROM, string(s))
+}
+
+type Network string
+func (s Network) AddArg(setter Setter) Setter {
+    return setter.Set(NETWORK, string(s))
+}
+
+type Timeout float32
+func (f Timeout) AddArg(setter Setter) Setter {
+    return setter.Set(TIMEOUT, float32(f))
+}
+
+type Event string
+func (s Event) AddArg(setter Setter) Setter {
+    return setter.Set(EVENT, string(s))
+}
+
+type Next string
+func (s Next) AddArg(setter Setter) Setter {
+    return setter.Set(NEXT, string(s))
 }
 
 
@@ -130,7 +189,18 @@ func Message(say _Say, to string, args... Arg) _Message {
     return message
 }
 
+func On(event, next string, args... Arg) _On {
+    on := _On{ JSFields{ } }
+    Event(event).AddArg(on)
+    Next(next).AddArg(on)
+    for _, arg := range args {
+        arg.AddArg(on)
+    }
+    return on
+}
+
 func main() {
+    /*
     heh := Message(
         Say(
             "Hello friend i eat crap",
@@ -140,6 +210,12 @@ func main() {
             Required(true)),
         "+1555555555",
         Name("cockroach"))
+    */
+
+    heh := On(
+        "failure", "next/more",
+        Say("That sure was bad"))
+
     fmt.Println(heh)
     j, _ := json.Marshal(heh)
     fmt.Println(string(j))
