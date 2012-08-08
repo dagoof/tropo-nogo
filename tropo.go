@@ -21,8 +21,26 @@ const (
     TIMEOUT = "timeout"
     EVENT = "event"
     NEXT = "next"
+    CHOICES = "choices"
+    ATTEMPTS = "attempts"
+    HEADERS = "headers"
+    RECORDING = "recording"
+    BARGEIN = "bargein"
+    INTERDIGITTIMEOUT = "interDigitTimeout"
+    MINCONFIDENCE = "minConfidence"
+    RECOGNIZER = "recognizer"
 )
 
+
+type JSFields map[string]interface{ }
+
+func JSSet(available Constrained, fields JSFields,
+        field string, value interface{ }) {
+    _, valid := available[field]
+    if valid {
+        fields[field] = value
+    }
+}
 
 type Constrained map[string]bool
 func Constrain(fields... string) Constrained {
@@ -33,28 +51,66 @@ func Constrain(fields... string) Constrained {
     return constraints
 }
 
+// Ask command
+
+var ASK_FIELDS Constrained = Constrain(
+    CHOICES, ALLOWSIGNALS, ATTEMPTS, BARGEIN, INTERDIGITTIMEOUT,
+    MINCONFIDENCE, NAME, RECOGNIZER, REQUIRED, SAY, TIMEOUT, VOICE)
+
+type _Ask struct {
+    Fields JSFields `json:"ask"`
+}
+
+func (ask _Ask) Set(field string, value interface{ }) Setter {
+    JSSet(ASK_FIELDS, ask.Fields, field, value)
+    return Setter(ask)
+}
+
+func Ask(args... Arg) _Ask {
+    ask := _Ask{ JSFields{ } }
+    AddArgs(ask, args...)
+    return ask
+}
+
+/*
+func Ask(choices Choices, args... Arg) _Ask {
+    ask := _Ask{ JSFields{ } }
+    AddArgs(ask, choices, args...)
+    return ask
+}
+*/
+
+// Call command
+
+var CALL_FIELDS Constrained = Constrain(
+    TO, ALLOWSIGNALS, ANSWERONMEDIA, CHANNEL, FROM, HEADERS,
+    NAME, NETWORK, RECORDING, REQUIRED, TIMEOUT)
+
+type _Call struct {
+    Fields JSFields `json:"call"`
+}
+
+func (call _Call) Set(field string, value interface{ }) Setter {
+    JSSet(CALL_FIELDS, call.Fields, field, value)
+    return Setter(call)
+}
+
+func Call(to string, args... Arg) _Call {
+    call := _Call{ JSFields{ } }
+    AddArgs(call, append(args, To(to))...)
+    return call
+}
+
+// Say command
 var SAY_FIELDS Constrained = Constrain(
     VALUE, ALLOWSIGNALS, AS, NAME, REQUIRED, VOICE)
 
-var MESSAGE_FIELDS Constrained = Constrain(
-    SAY, TO, ANSWERONMEDIA, CHANNEL, FROM, NAME, NETWORK,
-    REQUIRED, TIMEOUT, VOICE)
-
-var ON_FIELDS Constrained = Constrain(
-    EVENT, NEXT, SAY)
-
-type JSFields map[string]interface{ }
-
-// Say command
 type _Say struct {
     Fields JSFields `json:"say"`
 }
 
 func (say _Say) Set(field string, value interface{ }) Setter {
-    _, valid := SAY_FIELDS[field]
-    if valid {
-        say.Fields[field] = value
-    }
+    JSSet(SAY_FIELDS, say.Fields, field, value)
     return Setter(say)
 }
 
@@ -62,32 +118,53 @@ func (say _Say) AddArg(setter Setter) Setter {
     return setter.Set(SAY, say)
 }
 
+func Say(value string, args... Arg) _Say {
+    say := _Say{ JSFields{ } }
+    AddArgs(say, append(args, Value(value))...)
+    return say
+}
+
+
 // Message command
+
+var MESSAGE_FIELDS Constrained = Constrain(
+    SAY, TO, ANSWERONMEDIA, CHANNEL, FROM, NAME, NETWORK,
+    REQUIRED, TIMEOUT, VOICE)
+
 type _Message struct {
     Fields JSFields `json:"message"`
 }
 
 func (message _Message) Set(field string, value interface{ }) Setter {
-    _, valid := MESSAGE_FIELDS[field]
-    if valid {
-        message.Fields[field] = value
-    }
+    JSSet(MESSAGE_FIELDS, message.Fields, field, value)
     return Setter(message)
 }
 
-// On object
+func Message(say _Say, to string, args... Arg) _Message {
+    message := _Message{ JSFields{ } }
+    AddArgs(message, append(args, say, To(to))...)
+    return message
+}
+
+// On command
+
+var ON_FIELDS Constrained = Constrain(
+    EVENT, NEXT, SAY)
+
 type _On struct {
     Fields JSFields `json:"on"`
 }
 
 func (on _On) Set(field string, value interface{ }) Setter {
-    _, valid := ON_FIELDS[field]
-    if valid {
-        on.Fields[field] = value
-    }
+    JSSet(ON_FIELDS, on.Fields, field, value)
     return Setter(on)
 }
 
+func On(event string, args... Arg) _On {
+    on := _On{ JSFields{ } }
+    AddArgs(on, append(args, Event(event))...)
+    return on
+}
 
 // Arguments
 
@@ -97,6 +174,12 @@ type Setter interface {
 
 type Arg interface {
     AddArg(Setter) Setter
+}
+
+func AddArgs(setter Setter, args... Arg) {
+    for _, arg := range args {
+        arg.AddArg(setter)
+    }
 }
 
 type Value string
@@ -169,35 +252,32 @@ func (s Next) AddArg(setter Setter) Setter {
     return setter.Set(NEXT, string(s))
 }
 
-
-func Say(value string, args... Arg) _Say {
-    say := _Say{ JSFields{ } }
-    Value(value).AddArg(say)
-    for _, arg := range args {
-        arg.AddArg(say)
-    }
-    return say
+type Attempts int
+func (i Attempts) AddArg(setter Setter) Setter {
+    return setter.Set(ATTEMPTS, int(i))
 }
 
-func Message(say _Say, to string, args... Arg) _Message {
-    message := _Message{ JSFields{ } }
-    say.AddArg(message)
-    To(to).AddArg(message)
-    for _, arg := range args {
-        arg.AddArg(message)
-    }
-    return message
+type Bargein bool
+func (b Bargein) AddArg(setter Setter) Setter {
+    return setter.Set(BARGEIN, bool(b))
 }
 
-func On(event, next string, args... Arg) _On {
-    on := _On{ JSFields{ } }
-    Event(event).AddArg(on)
-    Next(next).AddArg(on)
-    for _, arg := range args {
-        arg.AddArg(on)
-    }
-    return on
+type InterdigitTimeout int
+func (i InterdigitTimeout) AddArg(setter Setter) Setter {
+    return setter.Set(INTERDIGITTIMEOUT, int(i))
 }
+
+type MinConfidence int
+func (i MinConfidence) AddArg(setter Setter) Setter {
+    return setter.Set(MINCONFIDENCE, int(i))
+}
+
+type Recognizer string
+func (s Recognizer) AddArg(setter Setter) Setter {
+    return setter.Set(RECOGNIZER, string(s))
+}
+
+// DEAL WITH HEADERS / CHOICES / RECORDING
 
 func main() {
     /*
@@ -213,7 +293,7 @@ func main() {
     */
 
     heh := On(
-        "failure", "next/more",
+        "failure",
         Say("That sure was bad"))
 
     fmt.Println(heh)
