@@ -29,6 +29,29 @@ const (
     INTERDIGITTIMEOUT = "interDigitTimeout"
     MINCONFIDENCE = "minConfidence"
     RECOGNIZER = "recognizer"
+    TERMINATOR = "terminator"
+    MODE = "mode"
+    BEEP = "beep"
+    FORMAT = "format"
+    MAXSILENCE = "maxSilence"
+    MAXTIME = "maxTime"
+    METHOD = "method"
+    TRANSCRIPTION = "transcription"
+    URL = "url"
+    PASSWORD = "password"
+    USERNAME = "username"
+    ID = "id"
+    MUTE = "mute"
+    PLAYTONES = "playTones"
+    ACTIONS = "actions"
+    CALLID = "callId"
+    COMPLETE = "complete"
+    ERROR = "error"
+    SEQUENCE = "sequence"
+    SESSIONDURATION = "sessionDuration"
+    SESSIONID = "sessionId"
+    STATE = "state"
+
 )
 
 
@@ -51,6 +74,30 @@ func Constrain(fields... string) Constrained {
     return constraints
 }
 
+// Choices structure
+
+var CHOICES_FIELDS Constrained = Constrain(
+    VALUE, TERMINATOR, MODE)
+
+type _Choices struct {
+    Fields JSFields `json:"choices"`
+}
+
+func (choices _Choices) Set(field string, value interface{ }) Setter {
+    JSSet(CHOICES_FIELDS, choices.Fields, field, value)
+    return Setter(choices)
+}
+
+func (choices _Choices) AddArg(setter Setter) Setter {
+    return setter.Set(CHOICES, choices)
+}
+
+func Choices(value string, args... Arg) _Choices {
+    choices := _Choices{ JSFields{ } }
+    AddArgs(choices, append(args, Value(value))...)
+    return choices
+}
+
 // Ask command
 
 var ASK_FIELDS Constrained = Constrain(
@@ -66,19 +113,11 @@ func (ask _Ask) Set(field string, value interface{ }) Setter {
     return Setter(ask)
 }
 
-func Ask(args... Arg) _Ask {
+func Ask(choices _Choices, name string, args... Arg) _Ask {
     ask := _Ask{ JSFields{ } }
-    AddArgs(ask, args...)
+    AddArgs(ask, append(args, choices, Name(name))...)
     return ask
 }
-
-/*
-func Ask(choices Choices, args... Arg) _Ask {
-    ask := _Ask{ JSFields{ } }
-    AddArgs(ask, choices, args...)
-    return ask
-}
-*/
 
 // Call command
 
@@ -101,29 +140,45 @@ func Call(to string, args... Arg) _Call {
     return call
 }
 
-// Say command
-var SAY_FIELDS Constrained = Constrain(
-    VALUE, ALLOWSIGNALS, AS, NAME, REQUIRED, VOICE)
+// Conference command
 
-type _Say struct {
-    Fields JSFields `json:"say"`
+var CONFERENCE_FIELDS Constrained = Constrain(
+    ID, ALLOWSIGNALS, INTERDIGITTIMEOUT, MUTE, NAME, PLAYTONES,
+    REQUIRED, TERMINATOR)
+
+type _Conference struct {
+    Fields JSFields `json:"message"`
 }
 
-func (say _Say) Set(field string, value interface{ }) Setter {
-    JSSet(SAY_FIELDS, say.Fields, field, value)
-    return Setter(say)
+func (conference _Conference) Set(field string,  value interface{ }) Setter {
+    JSSet(CONFERENCE_FIELDS, conference.Fields, field, value)
+    return Setter(conference)
 }
 
-func (say _Say) AddArg(setter Setter) Setter {
-    return setter.Set(SAY, say)
+func Conference(id string, args... Arg) _Conference {
+    conference := _Conference{ JSFields{ } }
+    AddArgs(call, append(args, Id(id))...)
+    return conference
 }
 
-func Say(value string, args... Arg) _Say {
-    say := _Say{ JSFields{ } }
-    AddArgs(say, append(args, Value(value))...)
-    return say
+// Hangup command
+
+var HANGUP_FIELDS Constrained = Constrain(HEADERS)
+
+type _Hangup struct {
+    Fields JSFields `json:"hangup"`
 }
 
+func (hangup _Hangup) Set(field string, value interface{ }) Setter {
+    JSSet(HANGUP_FIELDS, hangup.Fields, field, value)
+    return Setter(hangup)
+}
+
+func Hangup(args... Arg) _Hangup {
+    hangup := _Hangup{ JSFields{ } }
+    AddArgs(hangup, args...)
+    return hangup
+}
 
 // Message command
 
@@ -165,6 +220,122 @@ func On(event string, args... Arg) _On {
     AddArgs(on, append(args, Event(event))...)
     return on
 }
+
+// Record command
+
+var RECORD_FIELDS Constrained = Constrain(
+    ATTEMPTS, ALLOWSIGNALS, BARGEIN, BEEP, CHOICES, SAY,
+    FORMAT, MAXSILENCE, MAXTIME, METHOD, MINCONFIDENCE,
+    NAME, REQUIRED, TRANSCRIPTION, URL, PASSWORD, USERNAME,
+    TIMEOUT, INTERDIGITTIMEOUT, VOICE)
+
+type _Record struct {
+    Fields JSFields `json:"record"`
+}
+
+func (record _Record) Set(field string, value interface{ }) Setter {
+    JSSet(RECORD_FIELDS, record.Fields, field, value)
+    return Setter(record)
+}
+
+func (record _Record) AddArg(setter Setter) Setter {
+    return setter.Set(RECORDING, record)
+}
+
+func Record(name string, url string, args... Arg) _Record {
+    record := _Record{ JSFields{ } }
+    AddArgs(record, append(args, Name(name), Url(url))...)
+    return record
+}
+
+var Recording func(string, string, ...Arg) _Record = Record
+
+// Redirect command
+
+var REDIRECT_FIELDS Constrained = Constrain(
+    TO, NAME, REQUIRED)
+
+type _Redirect struct {
+    Fields JSFields `json:"redirect"`
+}
+
+func (redirect _Redirect) Set(field string, value interface{ }) Setter {
+    JSSet(REDIRECT_FIELDS, redirect.Fields, field, value)
+    return Setter(redirect)
+}
+
+func Redirect(to string, args... Arg) _Redirect {
+    redirect := _Redirect{ JSFields{ } }
+    AddArgs(redirect, append(args, To(to))...)
+    return redirect
+}
+
+// Reject command
+
+var REJECT_FIELDS Constrained = Constrain()
+
+type _Reject struct {
+    Fields JSFields `json:"reject"`
+}
+
+func (reject _Reject) Set(field string, value interface{ }) Setter {
+    JSSet(REJECT_FIELDS, reject.Fields, field, value)
+    return Setter(reject)
+}
+
+func Reject(args... Arg) _Reject {
+    reject := _Reject{ JSFields{ } }
+    AddArgs(reject, args...)
+    return reject
+}
+
+// Result command
+
+var RESULT_FIELDS Constrained = Constrain(
+    ACTIONS, CALLID, COMPLETE, ERROR, SEQUENCE,
+    SESSIONDURATION, SESSIONID, STATE)
+
+
+type _Result struct {
+    Fields JSFields `json:"result"`
+}
+
+func (result _Result) Set(field string, value interface{ }) Setter {
+    JSSet(RESULT_FIELDS, result.Fields, field, value)
+    return Setter(result)
+}
+
+func Result(args... Arg) _Result {
+    result := _Result{ JSFields{ } }
+    AddArgs(result, args...)
+    return result
+}
+
+
+// Say command
+
+var SAY_FIELDS Constrained = Constrain(
+    VALUE, ALLOWSIGNALS, AS, NAME, REQUIRED, VOICE)
+
+type _Say struct {
+    Fields JSFields `json:"say"`
+}
+
+func (say _Say) Set(field string, value interface{ }) Setter {
+    JSSet(SAY_FIELDS, say.Fields, field, value)
+    return Setter(say)
+}
+
+func (say _Say) AddArg(setter Setter) Setter {
+    return setter.Set(SAY, say)
+}
+
+func Say(value string, args... Arg) _Say {
+    say := _Say{ JSFields{ } }
+    AddArgs(say, append(args, Value(value))...)
+    return say
+}
+
 
 // Arguments
 
@@ -277,7 +448,113 @@ func (s Recognizer) AddArg(setter Setter) Setter {
     return setter.Set(RECOGNIZER, string(s))
 }
 
-// DEAL WITH HEADERS / CHOICES / RECORDING
+type Terminator string
+func (s Terminator) AddArg(setter Setter) Setter {
+    return setter.Set(TERMINATOR, string(s))
+}
+
+type Mode string
+func (s Mode) AddArg(setter Setter) Setter {
+    return setter.Set(MODE, string(s))
+}
+
+type Beep bool
+func (b Beep) AddArg(setter Setter) Setter {
+    return setter.Set(BEEP, bool(b))
+}
+
+type Format string
+func (s Format) AddArg(setter Setter) Setter {
+    return setter.Set(FORMAT, string(s))
+}
+
+type MaxSilence float32
+func (f MaxSilence) AddArg(setter Setter) Setter {
+    return setter.Set(MAXSILENCE, float32(f))
+}
+
+type MaxTime float32
+func (f MaxTime) AddArg(setter Setter) Setter {
+    return setter.Set(MAXTIME, float32(f))
+}
+
+type Method string
+func (s Method) AddArg(setter Setter) Setter {
+    return setter.Set(METHOD, string(s))
+}
+
+//type Transcription 
+
+type Url string
+func (s Url) AddArg(setter Setter) Setter {
+    return setter.Set(URL, string(s))
+}
+
+type Password string
+func (s Password) AddArg(setter Setter) Setter {
+    return setter.Set(PASSWORD, string(s))
+}
+
+type Username string
+func (s Username) AddArg(setter Setter) Setter {
+    return setter.Set(USERNAME, string(s))
+}
+
+type Id string
+func (s string) AddArg(setter Setter) Setter {
+    return setter.Set(STRING, string(s))
+}
+
+type Mute bool
+func (b Mute) AddArg(setter Setter) Setter {
+    return setter.Set(MUTE, bool(b))
+}
+
+type PlayTones bool
+func (b PlayTones) AddArg(setter Setter) Setter {
+    return setter.Set(PLAYTONES, bool(b))
+}
+
+//type Actions
+
+type CallId string
+func (s CallId) AddArg(setter Setter) Setter {
+    return setter.Set(CALLiD, string(s))
+}
+
+type Complete bool
+func (b type) AddArg(setter Setter) Setter {
+    return setter.Set(tYPE, bool(b))
+}
+
+type Error string
+func (e Error) AddArg(setter Setter) Setter {
+    return setter.Set(ERROR, string(e))
+}
+
+type Sequence int
+func (i Sequence) AddArg(setter Setter) Setter {
+    return setter.Set(SEQUENCE, int(i))
+}
+
+type SessionDuration int
+func (i SessionDuration) AddArg(setter Setter) Setter {
+    return setter.Set(SESSIONdURATION, int(i))
+}
+
+type SessionId string
+func (s SessionId) AddArg(setter Setter) Setter {
+    return setter.Set(SESSIONiD, string(s))
+}
+
+type State string
+func (s State) AddArg(setter Setter) Setter {
+    return setter.Set(STATE, string(s))
+}
+
+
+
+// DEAL WITH HEADERS / TRANSCRIPTION / ACTIONS
 
 func main() {
     /*
