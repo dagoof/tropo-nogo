@@ -1,9 +1,4 @@
-package main
-
-import (
-    "fmt"
-    "encoding/json"
-)
+package tropo
 
 const (
     VALUE = "value"
@@ -157,7 +152,7 @@ func (conference _Conference) Set(field string,  value interface{ }) Setter {
 
 func Conference(id string, args... Arg) _Conference {
     conference := _Conference{ JSFields{ } }
-    AddArgs(call, append(args, Id(id))...)
+    AddArgs(conference, append(args, Id(id))...)
     return conference
 }
 
@@ -501,8 +496,8 @@ func (s Username) AddArg(setter Setter) Setter {
 }
 
 type Id string
-func (s string) AddArg(setter Setter) Setter {
-    return setter.Set(STRING, string(s))
+func (s Id) AddArg(setter Setter) Setter {
+    return setter.Set(ID, string(s))
 }
 
 type Mute bool
@@ -519,12 +514,12 @@ func (b PlayTones) AddArg(setter Setter) Setter {
 
 type CallId string
 func (s CallId) AddArg(setter Setter) Setter {
-    return setter.Set(CALLiD, string(s))
+    return setter.Set(CALLID, string(s))
 }
 
 type Complete bool
-func (b type) AddArg(setter Setter) Setter {
-    return setter.Set(tYPE, bool(b))
+func (b Complete) AddArg(setter Setter) Setter {
+    return setter.Set(COMPLETE, bool(b))
 }
 
 type Error string
@@ -539,12 +534,12 @@ func (i Sequence) AddArg(setter Setter) Setter {
 
 type SessionDuration int
 func (i SessionDuration) AddArg(setter Setter) Setter {
-    return setter.Set(SESSIONdURATION, int(i))
+    return setter.Set(SESSIONDURATION, int(i))
 }
 
 type SessionId string
 func (s SessionId) AddArg(setter Setter) Setter {
-    return setter.Set(SESSIONiD, string(s))
+    return setter.Set(SESSIONID, string(s))
 }
 
 type State string
@@ -556,25 +551,3 @@ func (s State) AddArg(setter Setter) Setter {
 
 // DEAL WITH HEADERS / TRANSCRIPTION / ACTIONS
 
-func main() {
-    /*
-    heh := Message(
-        Say(
-            "Hello friend i eat crap",
-            Voice("roger"),
-            As("Jonathan"),
-            AllowSignals("lol"),
-            Required(true)),
-        "+1555555555",
-        Name("cockroach"))
-    */
-
-    heh := On(
-        "failure",
-        Say("That sure was bad"))
-
-    fmt.Println(heh)
-    j, _ := json.Marshal(heh)
-    fmt.Println(string(j))
-
-}
